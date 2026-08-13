@@ -1,25 +1,47 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
+
 <head>
+
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Monitor da Piscicultura</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
 <style>
+
 :root{--p:#176b57;--bg:#f3f7f5;--card:#fff;--text:#17352d;--muted:#6d7d77;--line:#dce6e2;--red:#c0392b;--yellow:#b7791f}
+
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+
 header{background:var(--p);color:#fff;padding:16px 20px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px #0002}header h1{margin:0;font-size:21px}
+
 .container{max-width:1500px;margin:auto;padding:18px}.toolbar,.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 2px 10px #0000000b}
+
 .toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:9px;padding:10px 14px;background:var(--p);color:#fff;font-weight:700;cursor:pointer}button.secondary{background:#e8efec;color:var(--text)}button.danger{background:var(--red)}
+
 .grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px}.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px}.field input,.field select{width:100%;padding:9px;border:1px solid #ccd8d3;border-radius:8px}
+
 .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.kpi{padding:15px;border:1px solid var(--line);border-radius:12px}.kpi b{display:block;font-size:24px}.kpi span{font-size:12px;color:var(--muted)}
+
 .table-wrap{overflow:auto}.sheet{border-collapse:collapse;width:100%;min-width:1250px}.sheet th,.sheet td{border:1px solid var(--line);padding:7px}.sheet th{background:#eaf1ee;font-size:12px;white-space:nowrap}.sheet input{width:100%;min-width:75px;border:1px solid #d5dfdb;border-radius:6px;padding:7px}
+
 .badge{display:inline-block;border-radius:20px;padding:4px 8px;font-size:11px;font-weight:800;background:#e8f5ef;color:var(--p)}.warn{background:#fff2d8;color:var(--yellow)}.dangerbg{background:#fde8e6;color:var(--red)}
+
 .hidden{display:none!important}.muted{color:var(--muted);font-size:12px}.login{max-width:420px;margin:60px auto}.login .field{margin-bottom:12px}
+
 .chartbox{height:390px}.alert{border-left:4px solid var(--yellow);background:#fffaf0;padding:10px;margin:8px 0;border-radius:6px}.alert.red{border-color:var(--red);background:#fff5f4}
+
 .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.tabs button.active{background:var(--p);color:#fff}.tabs button:not(.active){background:#e8efec;color:var(--text)}
+
 .toast{position:fixed;right:16px;bottom:16px;background:#17352d;color:white;padding:12px 16px;border-radius:10px;display:none;z-index:30}
+
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.grid,.kpis{grid-template-columns:1fr 1fr}.container{padding:10px}.kpi b{font-size:20px}}
+
 </style><head>
     <style>
         body {
@@ -30,95 +52,190 @@ header{background:var(--p);color:#fff;padding:16px 20px;position:sticky;top:0;z-
 </head>
 
 <body>
-<header><h1>🐟 NAQUA Monitor da Piscicultura</h1><div id="userInfo" class="muted" style="color:#d9eee7"></div></header>
+
+<header><h1> Naqua – Monitoramento da pisciculturas 
+
+
+</h1><div id="userInfo" class="muted" style="color:#d9eee7"></div></header>
+
+ 
 
 <section id="loginView" class="container login"><div class="card">
+
 <h2>Acesso</h2><div class="field"><label>E-mail</label><input id="email" type="email"></div>
+
 <div class="field"><label>Senha</label><input id="password" type="password"></div>
+
 <button onclick="login()">Entrar</button> <button class="secondary" onclick="signup()">Criar conta</button>
+
 <p id="loginMsg" class="muted"></p></div></section>
 
+ 
+
 <main id="appView" class="container hidden">
+
 <div class="toolbar">
+
 <button onclick="showPage('dashboard')">🏠 Dashboard</button><button onclick="showPage('tanks')">🐟 Tanques</button><button onclick="showPage('history')">📈 Histórico</button><button onclick="showPage('alerts')">🔔 Alertas</button>
+
 <span style="flex:1"></span><button class="secondary" onclick="loadAll()">↻ Atualizar</button><button class="secondary" onclick="logout()">Sair</button>
+
 </div>
 
+ 
+
 <section id="dashboard" class="page">
+
 <div class="card"><h2>Visão geral</h2><div id="kpis" class="kpis"></div></div>
+
 <div class="card"><h3>Alertas importantes</h3><div id="dashAlerts"></div></div>
+
 </section>
+
+ 
 
 <section id="tanks" class="page hidden">
+
 <div class="card"><button onclick="openTankForm()">＋ Novo tanque</button> <span class="muted">Clique nas células para atualizar. Cada alteração fica registrada no histórico.</span></div>
+
 <div id="tankForm" class="card hidden"><h3 id="formTitle">Novo tanque</h3><div class="grid" id="formGrid"></div><button onclick="saveTank()">Salvar</button> <button class="secondary" onclick="closeTankForm()">Cancelar</button></div>
+
 <div class="card"><div class="table-wrap"><table class="sheet"><thead><tr>
-<th>Tanque</th><th>Volume m³</th><th>Densidade kg/m³</th><th>Animais</th><th>Peso inicial g</th><th>CA esperada</th><th>Ração/dia kg</th><th>Ofertas/dia</th><th>Temp °C</th><th>pH</th><th>Amônia (ppm)</th><th>Nitrito (ppm)</th><th>OD mg/L</th><th>Última atualização</th><th>Ações</th>
+
+<th>Tanque</th><th>Volume (m³)</th><th>Densidade kg/m³</th><th>Animais</th><th>Peso inicial g</th><th>CA esperada</th><th>Ração/dia kg</th><th>Ofertas/dia</th><th>Temp (°C)</th><th>pH</th><th>Amônia (ppm)</th><th>Nitrito (ppm)</th><th>OD (mg/L)</th><th>Última atualização</th><th>Ações</th>
+
 </tr></thead><tbody id="tankRows"></tbody></table></div></div>
+
 </section>
+
+ 
 
 <section id="history" class="page hidden">
+
 <div class="card"><h2>📈 Histórico e gráficos</h2><div class="grid">
+
 <div class="field"><label>Tanque</label><select id="histTank" onchange="loadHistory()"></select></div>
+
 <div class="field"><label>Indicador</label><select id="histMetric" onchange="renderHistory()">
+
 <option value="weight">Peso médio (g)</option><option value="feed">Ração/dia (kg)</option><option value="temp">Temperatura (°C)</option><option value="ph">pH</option><option value="ammonia">Amônia (ppm)</option><option value="nitrite">Nitrito (ppm)</option><option value="oxygen">Oxigênio dissolvido (mg/L)</option><option value="animals">Número de animais</option>
+
 </select></div></div></div>
+
 <div class="card"><div class="chartbox"><canvas id="historyChart"></canvas></div></div>
+
 <div class="card"><h3>Registros</h3><div class="table-wrap"><table class="sheet"><thead><tr><th>Data</th><th>Usuário</th><th>Campo</th><th>Valor anterior</th><th>Novo valor</th></tr></thead><tbody id="historyRows"></tbody></table></div></div>
+
 </section>
 
+ 
+
 <section id="alerts" class="page hidden"><div class="card"><h2>🔔 Alertas</h2><div id="alertList"></div></div></section>
+
 </main>
+
 <div id="toast" class="toast"></div>
 
+ 
+
 <script>
+
 const SUPABASE_URL="https://vfbukzvyqdwweqmftdyx.supabase.co";
+
 const SUPABASE_ANON_KEY="sb_publishable_jarsRcxiOaVjGugl9pAXxQ_vxHvIHIF";
+
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
 let user=null,tanks=[],history=[],editingId=null,chart=null,channel=null;
+
 const FIELDS=["name","volume","density","animals","weight","fcr","feed","feedings","temp","ph","ammonia","nitrite","oxygen"];
-const LABELS={name:"Tanque",volume:"Volume (m³)",density:"Densidade (kg/m³)",animals:"Animais",weight:"Peso médio (g)",fcr:"CAA esperada",feed:"Ração/dia (kg)",feedings:"Ofertas/dia",temp:"Temperatura (°C)",ph:"pH",ammonia:"Amônia (ppm)",nitrite:"Nitrito (ppm)",oxygen:"Oxigênio dissolvido (mg/L)"};
+
+const LABELS={name:"Tanque",volume:"Volume (m³)",density:"Densidade (kg/m³)",animals:"Animais",weight:"Peso médio (g)",fcr:"CAA esperada",feed:"Ração/dia (kg)",feedings:"Ofertas/dia",temp:"Temperatura (°C)",ph:"pH",ammonia:"Amônia",nitrite:"Nitrito",oxygen:"Oxigênio dissolvido (mg/L)"};
+
 const NUMERIC=FIELDS.filter(x=>x!=="name");
+
 function toast(t){let e=document.getElementById("toast");e.textContent=t;e.style.display="block";setTimeout(()=>e.style.display="none",3500)}
+
 function fmt(d){return d?new Date(d).toLocaleString("pt-BR"):"—"} function old(d){return !d||(Date.now()-new Date(d)>30*864e5)}
+
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll('"',"&quot;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+
 async function login(){let r=await sb.auth.signInWithPassword({email:email.value,password:password.value});if(r.error)loginMsg.textContent=r.error.message}
+
 async function signup(){let r=await sb.auth.signUp({email:email.value,password:password.value});loginMsg.textContent=r.error?r.error.message:"Conta criada. Verifique o e-mail se necessário."}
+
 async function logout(){await sb.auth.signOut()}
+
 async function init(){let r=await sb.auth.getSession();user=r.data.session?.user||null;renderAuth();sb.auth.onAuthStateChange((_e,s)=>{user=s?.user||null;renderAuth()})}
+
 async function renderAuth(){let on=!!user;loginView.classList.toggle("hidden",on);appView.classList.toggle("hidden",!on);if(on){userInfo.textContent="Usuário: "+user.email;await loadAll();subscribe()}}
+
 async function loadAll(){let r=await sb.from("tanks").select("*").order("name");if(r.error)return toast(r.error.message);tanks=r.data||[];renderTanks();renderDashboard();fillTankSelect();renderAlerts();if(!history.length)loadHistory()}
+
 function showPage(p){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(p).classList.remove("hidden");if(p==="history")loadHistory();if(p==="alerts")renderAlerts()}
+
 function renderDashboard(){
+
 let n=tanks.length,animals=tanks.reduce((a,t)=>a+(Number(t.animals)||0),0),vol=tanks.reduce((a,t)=>a+(Number(t.volume)||0),0),feed=tanks.reduce((a,t)=>a+(Number(t.feed)||0),0),st=tanks.filter(t=>old(t.updated_at)).length;
+
 kpis.innerHTML=[["Tanques",n],["Animais",animals.toLocaleString("pt-BR")],["Volume total",vol.toLocaleString("pt-BR")+" m³"],["Ração/dia",feed.toLocaleString("pt-BR")+" kg"],["Sem atualização >30d",st]].map(x=>`<div class="kpi"><b>${x[1]}</b><span>${x[0]}</span></div>`).join("");
+
 let a=getAlerts();dashAlerts.innerHTML=a.length?a.slice(0,8).map(alertHtml).join(""):"<p class='muted'>Nenhum alerta no momento.</p>";
+
 }
-function getAlerts(){let a=[];for(let t of tanks){if(old(t.updated_at))a.push({red:false,text:`${t.name}: sem atualização há mais de 30 dias.`});if(t.oxygen!=null&&Number(t.oxygen)<4)a.push({red:true,text:`${t.name}: oxigênio dissolvido abaixo de 4 mg/L.`});if(t.ph!=null&&(Number(t.ph)<6||Number(t.ph)>8))a.push({red:true,text:`${t.name}: pH fora da faixa 6–8.`});if(t.ammonia!=null&&Number(t.ammonia)>1.00)a.push({red:true,text:`${t.name}: amônia acima de 1.00ppm.`});if(t.nitrite!=null&&Number(t.nitrite)>0.50)a.push({red:true,text:`${t.name}: nitrito acima de 0,50ppm.`})}return a}
-function alertHtml(a){return `<div class="alert ${a.red?"red":""}">${a.red?"🔴":"🟠"} ${esc(a.text)}</div>`}
+
+function getAlerts(){let a=[];for(let t of tanks){if(old(t.updated_at))a.push({red:false,text:`${t.name}: sem atualização há mais de 30 dias.`});if(t.oxygen!=null&&Number(t.oxygen)<4)a.push({red:true,text:`${t.name}: oxigênio dissolvido abaixo de 4 mg/L.`});if(t.ph!=null&&(Number(t.ph)<6||Number(t.ph)>8))a.push({red:true,text:`${t.name}: pH fora da faixa 6–8.`});if(t.ammonia!=null&&Number(t.ammonia)>1.00)a.push({red:true,text:`${t.name}: amônia acima de 1.00PPM.`});if(t.nitrite!=null&&Number(t.nitrite)>0.50)a.push({red:true,text:`${t.name}: nitrito acima de 0.50PPM.`})}return a}
+
+function alertHtml(a){return `<div class="alert ${a.red?"red":"green"}">${a.red?"🔴":"🟢"}${esc(a.text)}</div>`}
+
 function renderAlerts(){alertList.innerHTML=getAlerts().map(alertHtml).join("")||"<p class='muted'>Nenhum alerta no momento.</p>"}
+
 function renderTanks(){tankRows.innerHTML=tanks.map(t=>`<tr>
+
 <td><input value="${esc(t.name)}" onchange="updateField('${t.id}','name',this.value)"></td>
+
 ${NUMERIC.map(k=>`<td><input type="number" step="any" value="${t[k]??""}" onchange="updateField('${t.id}','${k}',this.value)"></td>`).join("")}
+
 <td><span class="badge ${old(t.updated_at)?"warn":""}">${fmt(t.updated_at)}${old(t.updated_at)?" • ATUALIZAR":""}</span></td>
+
 <td><button class="secondary" onclick="editTank('${t.id}')">Editar</button> <button class="danger" onclick="deleteTank('${t.id}')">Excluir</button></td></tr>`).join("")}
+
 function openTankForm(id=null){editingId=id;tankForm.classList.remove("hidden");formTitle.textContent=id?"Editar tanque":"Novo tanque";formGrid.innerHTML=FIELDS.map(k=>`<div class="field"><label>${LABELS[k]}</label><input id="f_${k}" type="${k==="name"?"text":"number"} step="any"></div>`).join("");if(id){let t=tanks.find(x=>x.id===id);FIELDS.forEach(k=>document.getElementById("f_"+k).value=t[k]??"")}}
+
 function closeTankForm(){tankForm.classList.add("hidden");editingId=null}
+
 async function saveTank(){let o={};FIELDS.forEach(k=>{let v=document.getElementById("f_"+k).value;o[k]=k==="name"?v:(v===""?null:Number(v))});o.updated_at=new Date().toISOString();o.updated_by=user.id;let r=editingId?await sb.from("tanks").update(o).eq("id",editingId):await sb.from("tanks").insert(o);if(r.error)toast(r.error.message);else{toast("Tanque salvo.");closeTankForm();loadAll()}}
+
 async function editTank(id){openTankForm(id)}
+
 async function deleteTank(id){if(!confirm("Excluir este tanque?"))return;let r=await sb.from("tanks").delete().eq("id",id);if(r.error)toast(r.error.message);else loadAll()}
+
 async function updateField(id,key,value){
+
 let t=tanks.find(x=>x.id===id),v=key==="name"?value:(value===""?null:Number(value)),before=t[key];if(String(before??"")===String(v??""))return;
+
 let r=await sb.from("tanks").update({[key]:v,updated_at:new Date().toISOString(),updated_by:user.id}).eq("id",id);
+
 if(r.error)toast(r.error.message);else{await sb.from("tank_history").insert({tank_id:id,user_id:user.id,field:key,old_value:before==null?null:String(before),new_value:v==null?null:String(v)});toast("Atualização salva e registrada no histórico.");loadAll()}
+
 }
+
 function fillTankSelect(){let cur=histTank.value;histTank.innerHTML=tanks.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");if(cur&&tanks.some(t=>t.id===cur))histTank.value=cur}
+
 async function loadHistory(){if(!histTank.value&&tanks[0])histTank.value=tanks[0].id;if(!histTank.value)return;let r=await sb.from("tank_history").select("*, profiles(email)").eq("tank_id",histTank.value).order("created_at");if(r.error){history=[];return toast(r.error.message)}history=r.data||[];renderHistory()}
+
 function renderHistory(){
+
 let metric=histMetric.value, rows=history.filter(x=>x.field===metric);historyRows.innerHTML=history.slice().reverse().map(x=>`<tr><td>${fmt(x.created_at)}</td><td>${esc(x.profiles?.email||x.user_id||"")}</td><td>${LABELS[x.field]||x.field}</td><td>${esc(x.old_value??"—")}</td><td>${esc(x.new_value??"—")}</td></tr>`).join("")||"<tr><td colspan='5'>Sem histórico.</td></tr>";
+
 let labels=[],data=[];rows.forEach(x=>{let n=Number(x.new_value);if(Number.isFinite(n)){labels.push(new Date(x.created_at).toLocaleDateString("pt-BR"));data.push(n)}});if(chart)chart.destroy();chart=new Chart(document.getElementById("historyChart"),{type:"line",data:{labels,datasets:[{label:LABELS[metric]||metric,data,tension:.25,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:"Data"}},y:{title:{display:true,text:LABELS[metric]||metric}}}}})
+
 }
+
 function subscribe(){if(channel)sb.removeChannel(channel);channel=sb.channel("piscicultura-live").on("postgres_changes",{event:"*",schema:"public",table:"tanks"},p=>{loadAll();if(p.eventType==="UPDATE"&&p.new.updated_by!==user.id)toast("🔔 Outro usuário atualizou um tanque.")}).subscribe()}
+
 init();
+
 </script>
+
 </body></html>
